@@ -4,16 +4,13 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0e4d2e4d7edb599ad3d92ab36418406fb7f9aded3d14a49db648504929390e06
+-- hash: ca6940db8c94f80da7602c070f83d2816844617bca1ed501311d2e01032dab60
 
 name:           fphw1
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/fphw1#readme>
-homepage:       https://github.com/githubuser/fphw1#readme
-bug-reports:    https://github.com/githubuser/fphw1/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2020 Author name here
+author:         Daniil Bolotov
+maintainer:     somerapmails@yandex.ru
+copyright:      2020 Daniil Bolotov
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -21,19 +18,20 @@ extra-source-files:
     README.md
     ChangeLog.md
 
-source-repository head
-  type: git
-  location: https://github.com/githubuser/fphw1
-
 library
   exposed-modules:
-      Lib
+      HW.Lang
+      HW.Main
+      HW.Print
   other-modules:
       Paths_fphw1
   hs-source-dirs:
       src
+  default-extensions: ApplicativeDo BangPatterns ConstraintKinds DataKinds DefaultSignatures DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies EmptyCase ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings PatternSynonyms RankNTypes ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications TypeFamilies TypeFamilyDependencies TypeOperators
   build-depends:
       base >=4.7 && <5
+    , megaparsec
+    , mtl
   default-language: Haskell2010
 
 executable fphw1-exe
