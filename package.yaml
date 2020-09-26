@@ -12,47 +12,49 @@ extra-source-files:
 dependencies:
 - base >= 4.7 && < 5
 
+default-extensions:
+- ApplicativeDo
+- BangPatterns
+- ConstraintKinds
+- DataKinds
+- DefaultSignatures
+- DeriveFoldable
+- DeriveFunctor
+- DeriveGeneric
+- DeriveLift
+- DeriveTraversable
+- DerivingStrategies
+- EmptyCase
+- ExistentialQuantification
+- FlexibleContexts
+- FlexibleInstances
+- FunctionalDependencies
+- GADTs
+- GeneralizedNewtypeDeriving
+- InstanceSigs
+- KindSignatures
+- LambdaCase
+- MultiParamTypeClasses
+- MultiWayIf
+- NamedFieldPuns
+- OverloadedStrings
+- PatternSynonyms
+- RankNTypes
+- ScopedTypeVariables
+- StandaloneDeriving
+- TupleSections
+- TypeApplications
+- TypeFamilies
+- TypeFamilyDependencies
+- TypeOperators
+
 library:
   source-dirs: src
   dependencies:
     - megaparsec
     - mtl
-  default-extensions:
-    - ApplicativeDo
-    - BangPatterns
-    - ConstraintKinds
-    - DataKinds
-    - DefaultSignatures
-    - DeriveFoldable
-    - DeriveFunctor
-    - DeriveGeneric
-    - DeriveLift
-    - DeriveTraversable
-    - DerivingStrategies
-    - EmptyCase
-    - ExistentialQuantification
-    - FlexibleContexts
-    - FlexibleInstances
-    - FunctionalDependencies
-    - GADTs
-    - GeneralizedNewtypeDeriving
-    - InstanceSigs
-    - KindSignatures
-    - LambdaCase
-    - MultiParamTypeClasses
-    - MultiWayIf
-    - NamedFieldPuns
-    - OverloadedStrings
-    - PatternSynonyms
-    - RankNTypes
-    - ScopedTypeVariables
-    - StandaloneDeriving
-    - TupleSections
-    - TypeApplications
-    - TypeFamilies
-    - TypeFamilyDependencies
-    - TypeOperators
-
+    - transformers
+    - containers
 
 executables:
   fphw1-exe:
