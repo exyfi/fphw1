@@ -42,17 +42,24 @@ showsExpr d (Binop op lhs rhs) = showParen (d > b) $
 showsExpr _ (Call fun args) = showString fun . (showParen True $
     foldr (.) id (intersperse (showString ", ") $ map (showsExpr 0) args))
 
-pretty :: Int -> Block -> ShowS
-pretty _ (Pure ()) = id
-pretty i (Free (StmtF stmt next)) = indent i .f stmt . showChar '\n' . pretty i next
-    where f (Expr expr) = showsExpr 0 expr
-          f (Assign ident expr) = showString ident . showString " = " . showsExpr 0 expr
-          f (Ret expr) = showString "return " . showsExpr 0 expr
-          f (If expr block) = showString "if " . showsExpr 0 expr . showString ":\n" . pretty (i + 1) block
-          f (IfElse expr true false) = showString "if " . showsExpr 0 expr . showString ":\n" .
-              pretty (i + 1) true . indent i . showString "else:\n" . pretty (i + 1) false
-          f (While expr block) = showString "while " . showsExpr 0 expr . showString ":\n" . pretty (i + 1) block
-          f (Def name args block) = showString "def " . showString name . showString ("(" <> intercalate ", " args <> "):\n") . pretty (i + 1) block
+pretty :: Block -> String
+pretty block = pretty 0 block ""
+    where pretty _ (Pure ()) = id
+          pretty i (Free (StmtF stmt next)) = indent i . f stmt . showChar '\n' . pretty i next
+              where f (Expr expr) = showsExpr 0 expr
+                    f (Assign ident expr) = showString ident . showString " = " . showsExpr 0 expr
+                    f (Ret expr) = showString "return " . showsExpr 0 expr
+                    f (If expr block) = showString "if " . showsExpr 0 expr . showString ":\n" . pretty (i + 1) block
+                    f (While expr block) = showString "while " . showsExpr 0 expr . showString ":\n" . pretty (i + 1) block
+                    f (Def name args block) = showString "def " . showString name . showString ("(" <> intercalate ", " args <> "):\n") . pretty (i + 1) block
 
-prettyPrint :: Block -> String
-prettyPrint block = pretty 0 block ""
+edsl :: Block -> String
+edsl block = "do\n" <> (pretty 1 block "")
+    where pretty _ (Pure ()) = id
+          pretty i (Free (StmtF stmt next)) = indent i . f stmt . showChar '\n' . pretty i next
+              where f (Expr expr) = showString "expr $ " . shows expr
+                    f (Assign ident expr) = showString "assign " . shows ident . showString " $ " . shows expr
+                    f (Ret expr) = showString "ret $ " . shows expr
+                    f (If expr block) = showString "if' (" . shows expr . showString ") $ do\n" . pretty (i + 1) block
+                    f (While expr block) = showString "while (" . shows expr . showString ") $ do\n" . pretty (i + 1) block
+                    f (Def name args block) = showString "def " . shows name . showChar ' ' . shows args . showString " $ do\n" . pretty (i + 1) block

@@ -42,7 +42,6 @@ data Stmt = Expr Expr
           | Assign Ident Expr
           | Ret Expr
           | If Expr Block
-          | IfElse Expr Block Block
           | While Expr Block
           | Def Ident [Ident] Block
           deriving (Eq, Show)
@@ -56,7 +55,6 @@ expr e = liftF $ Expr e
 assign lhs rhs = liftF $ Assign lhs rhs
 ret e = liftF $ Ret e
 if' e true = liftF $ If e true
-ifelse e true false = liftF $ IfElse e true false
 while e block = liftF $ While e block
 def name args block = liftF $ Def name args block
 
@@ -79,10 +77,10 @@ instance Monad StmtM where
 --        ret (Binop Gt (Ref "a") (Ref "b"))
 
 example = do
-    assign "x" (Call "input" [])
-    assign "y" (Lit $ VString "")
-    assign "i" (Lit $ VInt 0)
-    while (Binop Lt (Ref "i") (Lit $ VInt 10)) $ do
-        assign "y" (Binop Add (Ref "x") (Ref "y"))
-        expr (Call "print" [Ref "y"])
-        assign "i" (Binop Add (Ref "i") (Lit $ VInt 1))
+    assign "x" $ Call "input" []
+    assign "y" $ Lit (VString "")
+    assign "i" $ Lit (VInt 0)
+    while (Binop Lt (Ref "i") (Lit (VInt 10))) $ do
+        assign "y" $ Binop Add (Ref "x") (Ref "y")
+        expr $ Call "print" [Ref "y"]
+        assign "i" $ Binop Add (Ref "i") (Lit (VInt 1))

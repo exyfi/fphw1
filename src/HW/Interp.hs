@@ -118,11 +118,6 @@ interp this@(Free (StmtF stmt next)) = do
           val <- evalBool e
           when val $ interp true >> return ()
           interp next
-      IfElse e true false -> do
-          val <- evalBool e
-          if val then interp true
-                 else interp false
-          interp next
       While e block -> do
           val <- evalBool e
           if val then interp block >> interp this
