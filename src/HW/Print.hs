@@ -14,7 +14,7 @@ binopPrec Add = 5
 binopPrec Sub = 5
 binopPrec And = 3
 binopPrec Or = 2
-binopPrec _ = 3
+binopPrec _ = 4
 
 binopSymb :: Binop -> String
 binopSymb Add = "+"
@@ -35,6 +35,7 @@ showsExpr :: Int -> Expr -> ShowS
 showsExpr _ (Lit (VInt i)) = shows i
 showsExpr _ (Lit (VBool b)) = shows b
 showsExpr _ (Lit (VString s)) = shows s
+showsExpr _ (Lit VNone) = showString "None"
 showsExpr _ (Ref var) = showString var
 showsExpr d (Binop op lhs rhs) = showParen (d > b) $
     showsExpr (b + 1) lhs . showString (" " <> binopSymb op <> " ") . showsExpr (b + 1) rhs
