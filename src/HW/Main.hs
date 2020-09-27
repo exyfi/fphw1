@@ -17,7 +17,7 @@ usage = do
 load :: FilePath -> IO Block
 load filename = do
     src <- readFile filename
-    case parse parser "input" src of
+    case parse parser filename src of
       Left err -> do
           putStr $ errorBundlePretty err
           exitFailure

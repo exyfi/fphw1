@@ -4,6 +4,7 @@ import HW.Lang
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.State.Strict
+import Text.Read (readEither)
 import qualified Data.Map.Strict as M
 
 type Scope = M.Map Ident Value
@@ -12,6 +13,7 @@ data Err = NotInScope Ident
          | TypeMismatch Binop Value Value
          | ArgumentMismatch Ident Int
          | EarlyReturn Value -- return from a function, we catch this error around function call
+         | ValueError String
          deriving (Eq, Show)
 
 type Interp = StateT [Scope] (ExceptT Err IO)
@@ -19,6 +21,8 @@ type Interp = StateT [Scope] (ExceptT Err IO)
 getValue :: Ident -> Interp Value
 getValue "print" = return $ VBuiltin Print
 getValue "input" = return $ VBuiltin Input
+getValue "str" = return $ VBuiltin Str
+getValue "int" = return $ VBuiltin Int
 getValue ident = do
     scope <- get
     let value = msum $ (M.lookup ident) <$> scope
@@ -67,14 +71,27 @@ toString (VInt x) = show x
 toString (VString x) = x
 
 builtin :: Builtin -> [Value] -> Interp Value
+
 builtin Print msg = do
     let s = concat $ map toString msg
     lift $ lift $ putStr s
     return VNone
+
 builtin Input [] = do
     s <- lift $ lift getLine
     return $ VString s
-builtin Input args = throwError $ ArgumentMismatch "input" (length args)
+
+builtin Str [v] = return . VString $ toString v
+
+builtin Int [(VInt x)] = return $ VInt x
+builtin Int [(VBool False)] = return $ VInt 0
+builtin Int [(VBool True)] = return $ VInt 1
+builtin Int [(VString s)] = case readEither s of
+                              Left err -> throwError $ ValueError err
+                              Right val -> return $ VInt val
+builtin Int [x] = throwError . ValueError $ "Failed to parse int from " <> (toString x)
+
+builtin fun args = throwError $ ArgumentMismatch (show fun) (length args)
 
 eval :: Expr -> Interp Value
 eval (Lit x) = return x
@@ -148,4 +165,5 @@ runInterp i = do
              TypeMismatch op lhs rhs -> putStrLn $ "Attempt to perform " <> (show op) <> " on " <> (show lhs) <> " and " <> (show rhs)
              ArgumentMismatch fun n -> putStrLn $ "Attempt to call " <> fun <> " with " <> (show n) <> " arguments"
              EarlyReturn _ -> putStrLn "Return from top level"
+             ValueError msg -> putStrLn $ "ValueError: " <> msg
        Right () -> return ()

@@ -145,10 +145,10 @@ parseExpr = makeExprParser parseTerm operators
                         , InfixL (Binop Sub <$ symbol "-") ]
                       , [ InfixL (Binop Eq <$ symbol "==")
                         , InfixL (Binop Ne <$ symbol "!=")
-                        , InfixL (Binop Lt <$ symbol "<")
+                        , InfixL (Binop Ge <$ symbol ">=")
                         , InfixL (Binop Le <$ symbol "<=")
                         , InfixL (Binop Gt <$ symbol ">")
-                        , InfixL (Binop Ge <$ symbol ">=") ]
+                        , InfixL (Binop Lt <$ symbol "<") ]
                       , [ InfixL (Binop And <$ symbol "and") ]
                       , [ InfixL (Binop Or <$ symbol "or") ]
                       ]

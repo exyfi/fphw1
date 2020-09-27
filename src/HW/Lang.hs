@@ -7,6 +7,8 @@ type Ident = String
 
 data Builtin = Print
              | Input
+             | Str
+             | Int
              deriving (Eq, Show)
 
 data Value = VInt Int
