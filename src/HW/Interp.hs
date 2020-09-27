@@ -60,9 +60,16 @@ binop And (VBool l) (VBool r) = return $ VBool $ l && r
 binop Or (VBool l) (VBool r) = return $ VBool $ l || r
 binop op lhs rhs = throwError $ TypeMismatch op lhs rhs
 
+toString :: Value -> String
+toString VNone = "None"
+toString (VBool x) = show x
+toString (VInt x) = show x
+toString (VString x) = x
+
 builtin :: Builtin -> [Value] -> Interp Value
 builtin Print msg = do
-    lift $ lift $ print msg
+    let s = concat $ map toString msg
+    lift $ lift $ putStr s
     return VNone
 builtin Input [] = do
     s <- lift $ lift getLine
