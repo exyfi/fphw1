@@ -130,7 +130,7 @@ interp this@(Free (StmtF stmt next)) = do
           setValue fun $ VDef params block
           interp next
 
-runInterp :: Interp Value -> IO ()
+runInterp :: Interp () -> IO ()
 runInterp i = do
      res <- runExceptT $ evalStateT i [M.empty]
      case res of
@@ -141,5 +141,4 @@ runInterp i = do
              TypeMismatch op lhs rhs -> putStrLn $ "Attempt to perform " <> (show op) <> " on " <> (show lhs) <> " and " <> (show rhs)
              ArgumentMismatch fun n -> putStrLn $ "Attempt to call " <> fun <> " with " <> (show n) <> " arguments"
              EarlyReturn _ -> putStrLn "Return from top level"
-       Right VNone -> return ()
-       Right value -> putStrLn (show value) >> return ()
+       Right () -> return ()
