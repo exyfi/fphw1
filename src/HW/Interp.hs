@@ -9,8 +9,9 @@ import qualified Data.Map.Strict as M
 type Scope = M.Map Ident Value
 
 data Err = NotInScope Ident
-         | TypeMismatch
-         | ArgumentMismatch
+         | TypeMismatch Binop Value Value
+         | ArgumentMismatch Ident Int
+         | EarlyReturn Value -- return from a function, we catch this error around function call
          deriving (Eq, Show)
 
 type Interp = StateT [Scope] (ExceptT Err IO)
@@ -57,7 +58,7 @@ binop Le (VBool l) (VBool r) = return $ VBool $ l <= r
 binop Le (VString l) (VString r) = return $ VBool $ l <= r
 binop And (VBool l) (VBool r) = return $ VBool $ l && r
 binop Or (VBool l) (VBool r) = return $ VBool $ l || r
-binop _ _ _ = throwError TypeMismatch
+binop op lhs rhs = throwError $ TypeMismatch op lhs rhs
 
 builtin :: Builtin -> [Value] -> Interp Value
 builtin Print msg = do
@@ -66,7 +67,7 @@ builtin Print msg = do
 builtin Input [] = do
     s <- lift $ lift getLine
     return $ VString s
-builtin Input _ = throwError ArgumentMismatch
+builtin Input args = throwError $ ArgumentMismatch "input" (length args)
 
 eval :: Expr -> Interp Value
 eval (Lit x) = return x
@@ -81,9 +82,11 @@ eval (Call fun args) = do
     case f of
       VDef params block -> do
           when (length vals /= length params) $
-              throwError ArgumentMismatch
+              throwError $ ArgumentMismatch fun (length vals)
           modify (M.fromList (zip params vals):) -- push frame
-          retval <- interp block
+          retval <- (interp block >> return VNone) `catchError` (\case
+            EarlyReturn v -> return v
+            err -> throwError err)
           modify tail -- pop frame
           return retval
       
@@ -101,8 +104,8 @@ evalBool e = do
       VNone -> False
       _ -> True
 
-interp :: Block -> Interp Value
-interp (Pure ()) = return VNone
+interp :: Block -> Interp ()
+interp (Pure ()) = return ()
 interp this@(Free (StmtF stmt next)) = do
     case stmt of
       Expr e -> do
@@ -113,7 +116,8 @@ interp this@(Free (StmtF stmt next)) = do
           setValue lhs v
           interp next
       Ret e -> do
-          eval e
+          v <- eval e
+          throwError $ EarlyReturn v
       If e true -> do
           val <- evalBool e
           when val $ interp true >> return ()
@@ -132,6 +136,10 @@ runInterp i = do
      case res of
        Left err -> do
            putStrLn "=== Interpreter exception ==="
-           putStrLn $ show err
+           case err of
+             NotInScope i -> putStrLn $ "Identifier not found: " <> (show i)
+             TypeMismatch op lhs rhs -> putStrLn $ "Attempt to perform " <> (show op) <> " on " <> (show lhs) <> " and " <> (show rhs)
+             ArgumentMismatch fun n -> putStrLn $ "Attempt to call " <> fun <> " with " <> (show n) <> " arguments"
+             EarlyReturn _ -> putStrLn "Return from top level"
        Right VNone -> return ()
        Right value -> putStrLn (show value) >> return ()
