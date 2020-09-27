@@ -125,8 +125,8 @@ parseTopLevelBlock = L.nonIndented scn parseBlock
 parseBlock :: Parser Block
 parseBlock = collect <$> some parseStmt
 
-parseIndentedBlock :: (Block -> Stmt) -> Parser (L.IndentOpt Parser Stmt Block)
-parseIndentedBlock f = return $ L.IndentSome Nothing (return . f . sequence_) parseBlock
+parseIndentedBlock :: (Block -> Stmt) -> Parser (L.IndentOpt Parser Stmt Stmt)
+parseIndentedBlock f = return $ L.IndentSome Nothing (return . f . collect) parseStmt
 
 parseStmt :: Parser Stmt
 parseStmt = choice $ map try [ parseAssign
