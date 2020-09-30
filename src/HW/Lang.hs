@@ -3,14 +3,17 @@ module HW.Lang where
 import Control.Applicative
 import Control.Monad
 
+-- type of identifiers
 type Ident = String
 
+-- a builtin function
 data Builtin = Print
              | Input
              | Str
              | Int
              deriving (Eq, Show)
 
+-- a value of a variable
 data Value = VInt Int
            | VBool Bool
            | VString String
@@ -19,6 +22,7 @@ data Value = VInt Int
            | VNone
            deriving (Eq, Show)
 
+-- binary operation
 data Binop = Add
            | Sub
            | Mul
@@ -34,12 +38,20 @@ data Binop = Add
            | Or
            deriving (Eq, Show, Enum)
 
-data Expr = Lit Value
-          | Ref Ident
+-- unary operation
+data Unop = Not
+          | Neg
+           deriving (Eq, Show, Enum)
+
+-- expression type
+data Expr = Lit Value -- literal
+          | Ref Ident -- variable
           | Binop Binop Expr Expr
+          | Unop Unop Expr
           | Call Ident [Expr]
           deriving (Eq, Show)
 
+-- statement
 data Stmt = Expr Expr
           | Assign Ident Expr
           | Ret Expr
@@ -48,11 +60,13 @@ data Stmt = Expr Expr
           | Def Ident [Ident] Block
           deriving (Eq, Show)
 
+-- parametrized type from which the free monad StmtM is constructed
 data StmtF next = StmtF Stmt next
     deriving (Eq, Show, Functor)
 
 liftF = Free . fmap return . flip StmtF ()
 
+-- helper functions for writing eDSL
 expr e = liftF $ Expr e
 assign lhs rhs = liftF $ Assign lhs rhs
 ret e = liftF $ Ret e
@@ -73,16 +87,3 @@ instance Applicative StmtM where
 instance Monad StmtM where
     Pure a >>= f = f a
     Free x >>= f = Free $ fmap (>>= f) x
-
---example = do
---    def "max" ["a", "b"] $ do
---        ret (Binop Gt (Ref "a") (Ref "b"))
-
-example = do
-    assign "x" $ Call "input" []
-    assign "y" $ Lit (VString "")
-    assign "i" $ Lit (VInt 0)
-    while (Binop Lt (Ref "i") (Lit (VInt 10))) $ do
-        assign "y" $ Binop Add (Ref "x") (Ref "y")
-        expr $ Call "print" [Ref "y"]
-        assign "i" $ Binop Add (Ref "i") (Lit (VInt 1))

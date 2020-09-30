@@ -7,18 +7,32 @@ import Control.Monad.State.Strict
 import Text.Read (readEither)
 import qualified Data.Map.Strict as M
 
+-- Map: variable name -> variable value
 type Scope = M.Map Ident Value
 
 data Err = NotInScope Ident
          | TypeMismatch Binop Value Value
+         | UTypeMismatch Unop Value
          | ArgumentMismatch Ident Int
          | EarlyReturn Value -- return from a function, we catch this error around function call
          | ValueError String
          deriving (Eq, Show)
 
-type Interp = StateT [Scope] (ExceptT Err IO)
+-- interpreter monad, m is the real world
+-- [Scope] is the call stack of scopes
+type InterpT m = StateT [Scope] (ExceptT Err m)
+type Interp = InterpT IO
 
-getValue :: Ident -> Interp Value
+class Monad m => InterpImpl m where
+    output :: String -> m ()
+    input :: m String
+
+instance InterpImpl IO where
+    output = putStrLn
+    input = getLine
+
+-- get variable value, or throw NotInScope if the variable is not in scope
+getValue :: InterpImpl m => Ident -> InterpT m Value
 getValue "print" = return $ VBuiltin Print
 getValue "input" = return $ VBuiltin Input
 getValue "str" = return $ VBuiltin Str
@@ -30,10 +44,12 @@ getValue ident = do
       Just x  -> return x
       Nothing -> throwError $ NotInScope ident
 
-setValue :: Ident -> Value -> Interp ()
+-- sets variable value in the innermost scope
+setValue :: InterpImpl m => Ident -> Value -> InterpT m ()
 setValue ident value = modify $ \(x:xs) -> (M.insert ident value x):xs
 
-binop :: Binop -> Value -> Value -> Interp Value
+-- execute a binary operation
+binop :: InterpImpl m => Binop -> Value -> Value -> InterpT m Value
 binop Add (VInt l) (VInt r) = return $ VInt $ l + r
 binop Add (VString l) (VString r) = return $ VString $ l <> r
 binop Sub (VInt l) (VInt r) = return $ VInt $ l - r
@@ -46,8 +62,9 @@ binop Eq (VString l) (VString r) = return $ VBool $ l == r
 binop Eq VNone VNone = return $ VBool True
 binop Eq _ _ = return $ VBool False
 binop Ne l r = do
-    (VBool eq) <- binop Eq l r
-    return $ VBool $ not eq
+    eq <- binop Eq l r
+    case eq of
+      VBool beq -> return $ VBool $ not beq
 binop Gt (VInt l) (VInt r) = return $ VBool $ l > r
 binop Gt (VBool l) (VBool r) = return $ VBool $ l > r
 binop Gt (VString l) (VString r) = return $ VBool $ l > r
@@ -64,21 +81,29 @@ binop And (VBool l) (VBool r) = return $ VBool $ l && r
 binop Or (VBool l) (VBool r) = return $ VBool $ l || r
 binop op lhs rhs = throwError $ TypeMismatch op lhs rhs
 
+-- execute a unary operation
+unop :: InterpImpl m => Unop -> Value -> InterpT m Value
+unop Not val = return $ VBool $ not $ isTruthy val
+unop Neg (VInt x) = return $ VInt $ negate x
+unop op expr = throwError $ UTypeMismatch op expr
+
+-- str(value)
 toString :: Value -> String
 toString VNone = "None"
 toString (VBool x) = show x
 toString (VInt x) = show x
 toString (VString x) = x
 
-builtin :: Builtin -> [Value] -> Interp Value
+-- call builtin function with arguments
+builtin :: InterpImpl m => Builtin -> [Value] -> InterpT m Value
 
 builtin Print msg = do
     let s = concat $ map toString msg
-    lift $ lift $ putStr s
+    lift $ lift $ output s
     return VNone
 
 builtin Input [] = do
-    s <- lift $ lift getLine
+    s <- lift $ lift input
     return $ VString s
 
 builtin Str [v] = return . VString $ toString v
@@ -93,13 +118,16 @@ builtin Int [x] = throwError . ValueError $ "Failed to parse int from " <> (toSt
 
 builtin fun args = throwError $ ArgumentMismatch (show fun) (length args)
 
-eval :: Expr -> Interp Value
+eval :: InterpImpl m => Expr -> InterpT m Value
 eval (Lit x) = return x
 eval (Ref ident) = getValue ident
 eval (Binop op lhs rhs) = do
     l <- eval lhs
     r <- eval rhs
     binop op l r
+eval (Unop op expr) = do
+    val <- eval expr
+    unop op val
 eval (Call fun args) = do
     f <- getValue fun
     vals <- mapM eval args
@@ -118,17 +146,15 @@ eval (Call fun args) = do
 
       _ -> throwError $ NotInScope fun
 
-evalBool :: Expr -> Interp Bool
-evalBool e = do
-    val <- eval e
-    return $ case val of
+isTruthy :: Value -> Bool
+isTruthy val = case val of
       VInt 0 -> False
       VString "" -> False
       VBool False -> False
       VNone -> False
       _ -> True
 
-interp :: Block -> Interp ()
+interp :: InterpImpl m => Block -> InterpT m ()
 interp (Pure ()) = return ()
 interp this@(Free (StmtF stmt next)) = do
     case stmt of
@@ -143,11 +169,11 @@ interp this@(Free (StmtF stmt next)) = do
           v <- eval e
           throwError $ EarlyReturn v
       If e true -> do
-          val <- evalBool e
+          val <- isTruthy <$> eval e
           when val $ interp true >> return ()
           interp next
       While e block -> do
-          val <- evalBool e
+          val <- isTruthy <$> eval e
           if val then interp block >> interp this
                  else interp next
       Def fun params block -> do
@@ -163,6 +189,7 @@ runInterp i = do
            case err of
              NotInScope i -> putStrLn $ "Identifier not found: " <> (show i)
              TypeMismatch op lhs rhs -> putStrLn $ "Attempt to perform " <> (show op) <> " on " <> (show lhs) <> " and " <> (show rhs)
+             UTypeMismatch op expr -> putStrLn $ "Attempt to perform " <> (show op) <> " on " <> (show expr)
              ArgumentMismatch fun n -> putStrLn $ "Attempt to call " <> fun <> " with " <> (show n) <> " arguments"
              EarlyReturn _ -> putStrLn "Return from top level"
              ValueError msg -> putStrLn $ "ValueError: " <> msg

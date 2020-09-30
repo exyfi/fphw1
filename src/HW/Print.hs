@@ -31,6 +31,14 @@ binopSymb Le  = "<="
 binopSymb And = "and"
 binopSymb Or  = "or"
 
+unopPrec :: Unop -> Int
+unopPrec Not = 7
+unopPrec Neg = 8
+
+unopSymb :: Unop -> String
+unopSymb Not = "not "
+unopSymb Neg = "-"
+
 showsExpr :: Int -> Expr -> ShowS
 showsExpr _ (Lit (VInt i)) = shows i
 showsExpr _ (Lit (VBool b)) = shows b
@@ -40,9 +48,12 @@ showsExpr _ (Ref var) = showString var
 showsExpr d (Binop op lhs rhs) = showParen (d > b) $
     showsExpr (b + 1) lhs . showString (" " <> binopSymb op <> " ") . showsExpr (b + 1) rhs
     where b = binopPrec op
+showsExpr d (Unop op expr) = showParen (d > b) $ showString (unopSymb op) . showsExpr (b + 1) expr
+    where b = unopPrec op
 showsExpr _ (Call fun args) = showString fun . (showParen True $
     foldr (.) id (intersperse (showString ", ") $ map (showsExpr 0) args))
 
+-- pretty print Python source code
 pretty :: Block -> String
 pretty block = pretty 0 block ""
     where pretty _ (Pure ()) = id
@@ -54,6 +65,7 @@ pretty block = pretty 0 block ""
                     f (While expr block) = showString "while " . showsExpr 0 expr . showString ":\n" . pretty (i + 1) block
                     f (Def name args block) = showString "def " . showString name . showString ("(" <> intercalate ", " args <> "):\n") . pretty (i + 1) block
 
+-- pretty print Haskell eDSL
 edsl :: Block -> String
 edsl block = "do\n" <> (pretty 1 block "")
     where pretty _ (Pure ()) = id
