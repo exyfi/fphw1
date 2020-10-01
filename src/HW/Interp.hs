@@ -23,6 +23,12 @@ data Err = NotInScope Ident
 type InterpT m = StateT [Scope] (ExceptT Err m)
 type Interp = InterpT IO
 
+data FakeWorld = FakeWorld { outputLines :: [String]
+                           , inputLines :: [String]
+                           }
+
+type FakeIO = State FakeWorld
+
 class Monad m => InterpImpl m where
     output :: String -> m ()
     input :: m String
@@ -30,6 +36,19 @@ class Monad m => InterpImpl m where
 instance InterpImpl IO where
     output = putStrLn
     input = getLine
+
+instance InterpImpl FakeIO where
+    output s = do
+        state <- get
+        let state' = state { outputLines = s : outputLines state }
+        put state'
+
+    input = do
+        state <- get
+        let (x:xs) = inputLines state
+        let state' = state { inputLines = xs }
+        put state'
+        return x
 
 -- get variable value, or throw NotInScope if the variable is not in scope
 getValue :: InterpImpl m => Ident -> InterpT m Value
@@ -194,3 +213,10 @@ runInterp i = do
              EarlyReturn _ -> putStrLn "Return from top level"
              ValueError msg -> putStrLn $ "ValueError: " <> msg
        Right () -> return ()
+
+runInterpFake :: InterpT FakeIO () -> [String] -> Either Err [String]
+runInterpFake i inp =
+    case val of
+        Left err -> Left err
+        Right st -> Right $ outputLines state
+    where (val, state) = runState (runExceptT $ evalStateT i [M.empty]) (FakeWorld { inputLines = inp, outputLines = [] })

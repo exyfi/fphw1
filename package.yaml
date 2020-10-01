@@ -78,3 +78,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - fphw1
+    - hspec
+    - megaparsec

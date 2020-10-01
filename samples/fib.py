@@ -1,6 +1,7 @@
-def fib(n):
-    if n <= 1:
+def fib(x):
+    if not (x > 1):
         return 1
-    return fib(n - 1) + fib(n - 2)
+    return fib(x - 1) + fib(x - 2)
 
-print(fib(30))
+x = int(input())
+print(fib(x))

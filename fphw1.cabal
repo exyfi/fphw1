@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0214da288b2253824490bd1de994f31520c771b5ff3a4795d7373b48fed04c38
+-- hash: ca716c72bc1ce115b4cf34c3a7dd81d6c094a74b77b260d713037f470471ec22
 
 name:           fphw1
 version:        0.1.0.0
@@ -64,4 +64,6 @@ test-suite fphw1-test
   build-depends:
       base >=4.7 && <5
     , fphw1
+    , hspec
+    , megaparsec
   default-language: Haskell2010
